@@ -4,6 +4,7 @@ import time
 import os
 import pytesseract as pyt
 import cv2
+from datetime import datetime, timedelta
 
 
 def lclick(x, y):
@@ -23,20 +24,25 @@ def setupfirstbomb(run):
         subprocess.run(["/usr/bin/open", "/Applications/Keep Talking and Nobody Explodes.app"])
     time.sleep(1)
     pag.mouseDown(x=700, y=500, button="left")
-    time.sleep(0.3)
     pag.mouseUp()
-    lclick(700, 300)
-    lclick(900, 610)
-    time.sleep(15)
+    time.sleep(0.3)
+    lclick(850, 320)
+    lclick(900, 630)
+    time.sleep(10)
+    color = pag.screenshot(region=(300, 600, 1, 1)).getpixel((0, 0))[0]
+    while color < 100:
+        color = pag.screenshot(region=(300, 600, 1, 1)).getpixel((0, 0))[0]
+        pass
+    time.sleep(2)
     lclick(700, 500)
-    time.sleep(0.8)
-    return time.monotonic()
+    return
 
 
-def setuplog():
+def setuplog(truncate):
     os.chdir("../../../../../Applications/logs")
     oldlog = open("ktane.log", "r+")
-    oldlog.truncate()
+    if truncate:
+        oldlog.truncate()
     return oldlog
 
 
@@ -66,57 +72,175 @@ def setupedgework():
     return inedgework
 
 
-def solvemodule(module, loop):
+def solvemodule(module):
+    pag.moveTo(100, 100)
     if module == "ButtonComponent":
+        starttime = timedelta(hours=datetime.utcnow().hour, minutes=datetime.utcnow().minute, seconds=datetime.utcnow().second, microseconds=datetime.utcnow().microsecond)
+        for line in setuplog(0):
+            timetoken = line.split(" ")
+            if "Round start" in line:
+                starttime = timedelta(hours=float(timetoken[2][0:2]), minutes=float(timetoken[2][3:5]), seconds=float(timetoken[2][6:8]), milliseconds=float(timetoken[2][9:13]))
         buttontext = pag.screenshot(region=(635, 430, 155, 75))
         text = pyt.image_to_string(buttontext)
-        buttontext.save("bt" + str(loop) + ".png")
-        grayed = cv2.imread("bt" + str(loop) + ".png")
+        buttontext.save("bt.png")
+        grayed = cv2.imread("bt.png")
         grayed = cv2.cvtColor(grayed, cv2.COLOR_BGR2GRAY)
         grayedtext = pyt.image_to_string(grayed)
         inverted = cv2.bitwise_not(grayed)
-        print(edgework)
         if "HOLD" in (text + grayedtext + pyt.image_to_string(inverted)) and buttontext.getpixel((20, 4))[0] > 200 and buttontext.getpixel((20, 4))[1] < 100 and buttontext.getpixel((20, 4))[2] < 100:
             lclick(710, 470)
             return
         elif "ABORT" in (text + grayedtext + pyt.image_to_string(inverted)) and buttontext.getpixel((20, 4))[2] > 100 and buttontext.getpixel((20, 4))[1] < 100 and buttontext.getpixel((20, 4))[0] < 100:
-            print("nope")
+            pass
         elif "DETONATE" in (text + grayedtext + pyt.image_to_string(inverted)) and edgework["Batteries"] > 1:
             lclick(710, 470)
             return
         elif "FRK" in edgework["Indicators"]:
             if edgework["Indicators"]["FRK"] == "lit" and edgework["Batteries"] > 2:
                 lclick(710, 470)
-                print("why god oh why help me please oh god")
                 return
         pag.mouseDown(710, 470)
         time.sleep(1)
         strip = (pag.screenshot(region=(820, 480, 1, 1))).getpixel((0, 0))
-        print(strip)
         if strip[2] > 200 and strip[0] < 150 and strip[1] < 150:
-            print("Strip Blue")
             while True:
-                if "4" in str((round(300 - (time.monotonic() - starttime), 0) - (round(300 - (time.monotonic() - starttime), 0)) % 60)/60)[:-1][:-1] + str((round(300 - (time.monotonic() - starttime), 0)) % 60)[:-1][:-1]:
-                    print(str((round(300 - (time.monotonic() - starttime), 0) - (round(300 - (time.monotonic() - starttime), 0)) % 60)/60)[:-1][:-1] + str((round(300 - (time.monotonic() - starttime), 0)) % 60)[:-1][:-1])
+                timer = timedelta(minutes=5) - (timedelta(hours=datetime.utcnow().hour, minutes=datetime.utcnow().minute, seconds=datetime.utcnow().second, microseconds=datetime.utcnow().microsecond) - starttime)
+                if "4" in str(timer)[3:7]:
+                    time.sleep(0.1)
                     pag.mouseUp()
                     break
         elif strip[0] > 150 and strip[1] > 150 and strip[2] < 100:
-            print("Strip Yellow")
             while True:
-                if "5" in str((round(300 - (time.monotonic() - starttime), 0) - (round(300 - (time.monotonic() - starttime), 0)) % 60)/60)[:-1][:-1] + str((round(300 - (time.monotonic() - starttime), 0)) % 60)[:-1][:-1]:
-                    print(str((round(300 - (time.monotonic() - starttime), 0) - (round(300 - (time.monotonic() - starttime), 0)) % 60)/60)[:-1][:-1] + str((round(300 - (time.monotonic() - starttime), 0)) % 60)[:-1][:-1])
+                timer = timedelta(minutes=5) - (timedelta(hours=datetime.utcnow().hour, minutes=datetime.utcnow().minute, seconds=datetime.utcnow().second, microseconds=datetime.utcnow().microsecond) - starttime)
+                if "5" in str(timer)[3:7]:
+                    time.sleep(0.1)
                     pag.mouseUp()
                     break
         else:
-            print("Strip Other")
             while True:
-                if "1" in str((round(300 - (time.monotonic() - starttime), 0) - (round(300 - (time.monotonic() - starttime), 0)) % 60)/60)[:-1][:-1] + str((round(300 - (time.monotonic() - starttime), 0)) % 60)[:-1][:-1]:
-                    print((str((round(300 - (time.monotonic() - starttime), 0) - (round(300 - (time.monotonic() - starttime), 0)) % 60)/60)[:-1][:-1] + str((round(300 - (time.monotonic() - starttime), 0)) % 60)[:-1][:-1]))
+                timer = timedelta(minutes=5) - (timedelta(hours=datetime.utcnow().hour, minutes=datetime.utcnow().minute, seconds=datetime.utcnow().second, microseconds=datetime.utcnow().microsecond) - starttime)
+                if "1" in str(timer)[3:7]:
+                    time.sleep(0.1)
                     pag.mouseUp()
                     break
+    elif module == "KeypadComponent":
+        solutions = [["QI", "AT", "LM", "LB", "SP", "HQ", "BC"], ["BE", "QI", "BC", "OC", "OS", "HQ", "U?"], ["CO", "BU", "OC", "XI", "OR", "LM", "OS"], ["S6", "BP", "BT", "SP", "XI", "U?", "SM"], ["TR", "SM", "BT", "CD", "BP", "Q3", "FS"], ["S6", "BE", "PZ", "AE", "TR", "BN", "OM"]]
+        blacklist = []
+        if os.getcwd() != "/Users/charliebeutter/Desktop/KTANE-TAS-ASSETS":
+            os.chdir("../../Users/CharlieBeutter/Desktop/KTANE-TAS-ASSETS")
+        onscreen = {}
+        correctcolumn = 0
+        done = False
+        inbreak = False
+        for column in solutions:
+            inbreak = False
+            for symbol in blacklist:
+                if symbol in column:
+                    inbreak = True
+                    break
+            if inbreak:
+                continue
+            breakcount = 0
+            foundcount = 0
+            for symbol in column:
+                test = pag.locateCenterOnScreen(symbol + ".png", confidence=0.85, grayscale=True)
+                if test is None:
+                    blacklist.append(symbol)
+                    breakcount += 1
+                    if breakcount == 4:
+                        break
+                else:
+                    foundcount += 1
+                    onscreen[symbol] = test
+                    if foundcount == 4:
+                        done = True
+                        correctcolumn = column
+                        break
+            if done:
+                break
+        for symbol in correctcolumn:
+            if symbol in onscreen:
+                pag.mouseDown(onscreen[symbol])
+                pag.mouseUp()
+    elif module == "WireSetComponent":
+        def cut(cwire):
+            wireloci = [(735, 375), (740, 400), (730, 430), (740, 460), (745, 490), (740, 520)]
+            pag.mouseDown(wireloci[cwire - 1])
+            pag.mouseUp()
+        wireim = pag.screenshot(region=(650, 345, 180, 200))
+        wires = [wireim.getpixel((16, 11)), wireim.getpixel((21, 46)), wireim.getpixel((22, 77)), wireim.getpixel((27, 107)), wireim.getpixel((20, 144)), wireim.getpixel((21, 179))]
+        wirecolors = []
+        wirepos = []
+        for wire in wires:
+            if wire[0] > 150 and wire[1] < 100 and wire[2] < 100:
+                wirecolors.append("Red")
+                wirepos.append(wires.index(wire) + 1)
+            if wire[0] > 150 and wire[1] > 150 and wire[2] > 150:
+                wirecolors.append("White")
+                wirepos.append(wires.index(wire) + 1)
+            if wire[0] < 100 and wire[1] < 100 and wire[2] > 150:
+                wirecolors.append("Blue")
+                wirepos.append(wires.index(wire) + 1)
+            if wire[0] > 150 and wire[1] > 150 and wire[2] < 100:
+                wirecolors.append("Yellow")
+                wirepos.append(wires.index(wire) + 1)
+            if wire[0] < 10 and wire[1] < 10 and wire[2] < 10:
+                wirecolors.append("Black")
+                wirepos.append(wires.index(wire) + 1)
+        totalwires = "0"
+        for line in setuplog(0):
+            token = line.split()
+            if "Wires.Count" in line:
+                totalwires = token[8]
+        if totalwires == "3":
+            if "Red" not in wirecolors:
+                cut(wirepos[1])
+            elif wirecolors[-1] == "White":
+                cut(wirepos[-1])
+            elif wirecolors.count("Blue") > 1:
+                wirecolors.reverse()
+                for wire in wirecolors:
+                    if wire == "Blue":
+                        cut(wirepos[(3 - wirecolors.index(wire)) - 1])
+                        return
+            else:
+                cut(wirepos[-1])
+        elif totalwires == "4":
+            if wirecolors.count("Red") > 1 and (int(edgework["Serial"][-1]) % 2) == 1:
+                wirecolors.reverse()
+                for wire in wirecolors:
+                    if wire == "Red":
+                        cut(wirepos[(4 - wirecolors.index(wire)) - 1])
+                        return
+            elif wirecolors[-1] == "Yellow" and wirecolors.count("Red") == 0:
+                cut(wirepos[0])
+            elif wirecolors.count("Blue") == 1:
+                cut(wirepos[0])
+            elif wirecolors.count("Yellow") > 1:
+                cut(wirepos[-1])
+            else:
+                cut(wirepos[1])
+        elif totalwires == "5":
+            if wirecolors[-1] == "Black" and (int(edgework["Serial"][-1]) % 2) == 1:
+                cut(wirepos[3])
+            elif wirecolors.count("Red") == 1 and wirecolors.count("Yellow") > 1:
+                cut(wirepos[0])
+            elif wirecolors.count("Black") == 0:
+                cut(wirepos[1])
+            else:
+                cut(wirepos[0])
+        elif totalwires == "6":
+            if wirecolors.count("Yellow") == 0 and (int(edgework["Serial"][-1]) % 2) == 1:
+                cut(wirepos[2])
+            elif wirecolors.count("Yellow") == 1 and wirecolors.count("White") > 1:
+                cut(wirepos[3])
+            elif wirecolors.count("Red") == 0:
+                cut(wirepos[-1])
+            else:
+                cut(wirepos[3])
 
 
-def solvefront(loop):
+def solvefront():
     locations = {}
     for loc in modules["FrontFace"]:
         if modules["FrontFace"][loc] != "EmptyComponent" and modules["FrontFace"][loc] != "TimerComponent":
@@ -135,35 +259,45 @@ def solvefront(loop):
             lclick(630, 460)
         elif loc == "5":
             lclick(867, 470)
-        solvemodule(modules["FrontFace"][loc], loop)
+        solvemodule(modules["FrontFace"][loc])
         mx, my = pag.position()
         rclick(mx, my)
 
 
-log = setuplog()
-starttime = setupfirstbomb(1)
+def newbomb(run):
+    if run:
+        subprocess.run(["/usr/bin/open", "/Applications/Keep Talking and Nobody Explodes.app"])
+    time.sleep(1)
+    time.sleep(10)
+    color = pag.screenshot(region=(300, 600, 1, 1)).getpixel((0, 0))[0]
+    while color < 100:
+        color = pag.screenshot(region=(300, 600, 1, 1)).getpixel((0, 0))[0]
+        pass
+    time.sleep(2)
+    lclick(700, 500)
+    return
+
+
+log = setuplog(1)
+setupfirstbomb(1)
 bombinfo = log.readlines()[1:]
 modules = setupmodules()
 edgework = setupedgework()
-os.chdir("../../Users/CharlieBeutter/Desktop/TestScreenies")
-solvefront(0)
-time.sleep(1)
-pag.press("esc")
-time.sleep(0.7)
-lclick(1000, 400)
-lclick(1000, 400)
-time.sleep(1)
+os.chdir("../../Users/CharlieBeutter/Desktop/KTANE-TAS-ASSETS")
+solvefront()
+time.sleep(12)
+lclick(750, 590)
+lclick(750, 590)
+time.sleep(5)
 for game in range(0, 1000):
-    log = setuplog()
-    starttime = setupfirstbomb(1)
+    log = setuplog(1)
+    setupfirstbomb(0)
     bombinfo = log.readlines()[1:]
     modules = setupmodules()
     edgework = setupedgework()
-    os.chdir("../../Users/CharlieBeutter/Desktop/TestScreenies")
-    solvefront(game + 1)
-    time.sleep(1)
-    pag.press("esc")
-    time.sleep(0.7)
-    lclick(1000, 400)
-    lclick(1000, 400)
-    time.sleep(1)
+    os.chdir("../../Users/CharlieBeutter/Desktop/KTANE-TAS-ASSETS")
+    solvefront()
+    time.sleep(12)
+    lclick(750, 590)
+    lclick(750, 590)
+    time.sleep(5)
