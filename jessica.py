@@ -5,6 +5,7 @@ import os
 import pytesseract as pyt
 import cv2
 from datetime import datetime, timedelta
+import webcolors
 
 
 def lclick(x, y):
@@ -19,6 +20,17 @@ def rclick(x, y):
     pag.mouseUp(button="right")
 
 
+def closest_color(requested_color):
+    min_colors = {}
+    for key, name in webcolors.CSS2_HEX_TO_NAMES.items():
+        r_c, g_c, b_c = webcolors.hex_to_rgb(key)
+        rd = (r_c - requested_color[0]) ** 2
+        gd = (g_c - requested_color[1]) ** 2
+        bd = (b_c - requested_color[2]) ** 2
+        min_colors[(rd + gd + bd)] = name
+    return min_colors[min(min_colors.keys())]
+
+
 def setupfirstbomb(run):
     if run:
         subprocess.run(["/usr/bin/open", "/Applications/Keep Talking and Nobody Explodes.app"])
@@ -27,6 +39,25 @@ def setupfirstbomb(run):
     pag.mouseUp()
     time.sleep(0.3)
     lclick(850, 320)
+    lclick(900, 630)
+    time.sleep(10)
+    color = pag.screenshot(region=(300, 600, 1, 1)).getpixel((0, 0))[0]
+    while color < 100:
+        color = pag.screenshot(region=(300, 600, 1, 1)).getpixel((0, 0))[0]
+        pass
+    time.sleep(2)
+    lclick(700, 500)
+    return
+
+
+def setupsnipsnap(run):
+    if run:
+        subprocess.run(["/usr/bin/open", "/Applications/Keep Talking and Nobody Explodes.app"])
+    time.sleep(1)
+    pag.mouseDown(x=700, y=500, button="left")
+    pag.mouseUp()
+    time.sleep(0.3)
+    lclick(850, 420)  # THIS ONE
     lclick(900, 630)
     time.sleep(10)
     color = pag.screenshot(region=(300, 600, 1, 1)).getpixel((0, 0))[0]
@@ -57,7 +88,7 @@ def setupmodules():
 
 
 def setupedgework():
-    inedgework = {"Serial": "", "Batteries": 0, "Indicators": {}, "Parallel Port": False}
+    inedgework = {"Serial": "", "Batteries": 0, "Indicators": {}, "Parallel Port": "False"}
     for line in bombinfo:
         token = line.split(" ")
         if "Serial Number" in line:
@@ -68,7 +99,7 @@ def setupedgework():
             inedgework["Indicators"][token[8]] = token[7]
         if "Port Widget" in line:
             if "Parallel" in line:
-                inedgework["Ports"] = True
+                inedgework["Parallel Port"] = "True"
     return inedgework
 
 
@@ -187,12 +218,13 @@ def solvemodule(module):
             if wire[0] < 10 and wire[1] < 10 and wire[2] < 10:
                 wirecolors.append("Black")
                 wirepos.append(wires.index(wire) + 1)
-        totalwires = "0"
-        for line in setuplog(0):
-            token = line.split()
-            if "Wires.Count" in line:
-                totalwires = token[8]
-        if totalwires == "3":
+        print(wirecolors)
+        print(wirepos)
+        totalwires = 0
+        for w in wirecolors:
+            totalwires += 1
+        print(totalwires)
+        if totalwires == 3:
             if "Red" not in wirecolors:
                 cut(wirepos[1])
             elif wirecolors[-1] == "White":
@@ -205,7 +237,7 @@ def solvemodule(module):
                         return
             else:
                 cut(wirepos[-1])
-        elif totalwires == "4":
+        elif totalwires == 4:
             if wirecolors.count("Red") > 1 and (int(edgework["Serial"][-1]) % 2) == 1:
                 wirecolors.reverse()
                 for wire in wirecolors:
@@ -220,7 +252,7 @@ def solvemodule(module):
                 cut(wirepos[-1])
             else:
                 cut(wirepos[1])
-        elif totalwires == "5":
+        elif totalwires == 5:
             if wirecolors[-1] == "Black" and (int(edgework["Serial"][-1]) % 2) == 1:
                 cut(wirepos[3])
             elif wirecolors.count("Red") == 1 and wirecolors.count("Yellow") > 1:
@@ -229,7 +261,7 @@ def solvemodule(module):
                 cut(wirepos[1])
             else:
                 cut(wirepos[0])
-        elif totalwires == "6":
+        elif totalwires == 6:
             if wirecolors.count("Yellow") == 0 and (int(edgework["Serial"][-1]) % 2) == 1:
                 cut(wirepos[2])
             elif wirecolors.count("Yellow") == 1 and wirecolors.count("White") > 1:
@@ -238,6 +270,157 @@ def solvemodule(module):
                 cut(wirepos[-1])
             else:
                 cut(wirepos[3])
+    elif module == "WireSequenceComponent":
+        def cut(inwire):
+            if inwire == 1:
+                lclick(680, 400)
+            if inwire == 2:
+                lclick(680, 440)
+            if inwire == 3:
+                lclick(680, 480)
+        red = ["c", "b", "a", "ac", "b", "ac", "abc", "ab", "b"]
+        blue = ["b", "ac", "b", "a", "b", "bc", "c", "ac", "a"]
+        black = ["abc", "ac", "b", "ac", "b", "bc", "ab", "c", "c"]
+        for panel in range(0, 4):
+            wireshot = pag.screenshot(region=(635, 365, 160, 160))
+            wires = [wireshot.getpixel((80, 35)), wireshot.getpixel((68, 48)), wireshot.getpixel((54, 50)), wireshot.getpixel((98, 46)), wireshot.getpixel((58, 73)), wireshot.getpixel((59, 85)), wireshot.getpixel((59, 92)), wireshot.getpixel((68, 100)), wireshot.getpixel((80, 111))]
+            wirecolors = []
+            for wire in wires:
+                cc = closest_color((wire[0:3]))
+                wirecolors.append(cc)
+            for wire in range(0, len(wirecolors)):
+                if wirecolors[wire] == "red" or wirecolors[wire] == "maroon":
+                    if int(wire % 3) == 0:
+                        if "a" in red[0]:
+                            cut(int((wire + (3 - (wire % 3)))/3))
+                    elif int(wire % 3) == 1:
+                        if "b" in red[0]:
+                            cut(int((wire + (3 - (wire % 3)))/3))
+                    elif int(wire % 3) == 2:
+                        if "c" in red[0]:
+                            cut(int((wire + (3 - (wire % 3)))/3))
+                    red.pop(0)
+                elif wirecolors[wire] == "blue" or wirecolors[wire] == "teal" or wirecolors[wire] == "navy":
+                    if int(wire % 3) == 0:
+                        if "a" in blue[0]:
+                            cut(int((wire + (3 - (wire % 3))) / 3))
+                    elif int(wire % 3) == 1:
+                        if "b" in blue[0]:
+                            cut(int((wire + (3 - (wire % 3))) / 3))
+                    elif int(wire % 3) == 2:
+                        if "c" in blue[0]:
+                            cut(int((wire + (3 - (wire % 3))) / 3))
+                    blue.pop(0)
+                elif wirecolors[wire] == "black":
+                    if int(wire % 3) == 0:
+                        if "a" in black[0]:
+                            cut(int((wire + (3 - (wire % 3))) / 3))
+                    elif int(wire % 3) == 1:
+                        if "b" in black[0]:
+                            cut(int((wire + (3 - (wire % 3))) / 3))
+                    elif int(wire % 3) == 2:
+                        if "c" in black[0]:
+                            cut(int((wire + (3 - (wire % 3))) / 3))
+                    black.pop(0)
+            lclick(715, 530)
+            time.sleep(1)
+        print()
+    elif module == "VennWiresComponent":
+        def cut(inwire):
+            if inwire == 1:
+                lclick(650, 440)
+            elif inwire == 2:
+                lclick(670, 440)
+            elif inwire == 3:
+                lclick(710, 430)
+            elif inwire == 4:
+                lclick(745, 420)
+            elif inwire == 5:
+                lclick(765, 440)
+            elif inwire == 6:
+                lclick(795, 440)
+        shot = pag.screenshot(region=(635, 345, 190, 200))
+        leds = [shot.getpixel((15, 15)), shot.getpixel((40, 15)), shot.getpixel((65, 15)), shot.getpixel((90, 15)), shot.getpixel((115, 15)), shot.getpixel((140, 15))]
+        ledon = []
+        for led in leds:
+            ledon.append(closest_color(led))
+        stars = [shot.getpixel((15, 188)), shot.getpixel((48, 183)), shot.getpixel((80, 180)), shot.getpixel((106, 182)), shot.getpixel((143, 180)), shot.getpixel((175, 180))]
+        staron = []
+        for star in stars:
+            staron.append(closest_color(star))
+        stripe1 = [shot.getpixel((11, 113)), shot.getpixel((47, 118)), shot.getpixel((77, 89)), shot.getpixel((111, 90)), shot.getpixel((130, 80)), shot.getpixel((160, 92))]
+        stripe1color = []
+        for stripe in stripe1:
+            stripe1color.append(closest_color(stripe))
+        stripe2 = [shot.getpixel((10, 135)), shot.getpixel((43, 112)), shot.getpixel((73, 82)), shot.getpixel((112, 102)), shot.getpixel((121, 42)), shot.getpixel((154, 81))]
+        stripe2color = []
+        for stripe in stripe2:
+            stripe2color.append(closest_color(stripe))
+        compwires = ["", "", "", "", "", ""]
+        for wire in range(0, 6):
+            if ledon[wire] != "black":
+                compwires[wire] = compwires[wire] + "l"
+            if staron[wire] != "gray":
+                compwires[wire] = compwires[wire] + "s"
+            if stripe1color[wire] == "red" or stripe2color[wire] == "red" or stripe1color[wire] == "maroon" or stripe2color[wire] == "maroon":
+                compwires[wire] = compwires[wire] + "r"
+            if stripe1color[wire] == "blue" or stripe2color[wire] == "blue" or stripe1color[wire] == "teal" or stripe2color[wire] == "teal":
+                compwires[wire] = compwires[wire] + "b"
+            if stripe1color[wire] == "gray" or stripe2color[wire] == "gray":
+                compwires[wire] = "rbsl"
+        solution = []
+        for w in compwires:
+            if "r" in w:
+                if "b" in w:
+                    if "s" in w:
+                        if "l" in w:
+                            solution.append("D")
+                        else:
+                            solution.append("P")
+                    elif "l" in w:
+                        solution.append("S")
+                    else:
+                        solution.append("S")
+                elif "s" in w:
+                    if "l" in w:
+                        solution.append("B")
+                    else:
+                        solution.append("C")
+                elif "l" in w:
+                    solution.append("B")
+                else:
+                    solution.append("S")
+            elif "b" in w:
+                if "s" in w:
+                    if "l" in w:
+                        solution.append("P")
+                    else:
+                        solution.append("D")
+                elif "l" in w:
+                    solution.append("P")
+                else:
+                    solution.append("S")
+            elif "s" in w:
+                if "l" in w:
+                    solution.append("B")
+                else:
+                    solution.append("C")
+            elif "l" in w:
+                solution.append("D")
+            else:
+                solution.append("C")
+        for sol in range(0, 6):
+            if solution[sol] == "C":
+                cut(sol + 1)
+            elif solution[sol] == "S":
+                if (int(edgework["Serial"][-1]) % 2) == 0:
+                    cut(sol + 1)
+            elif solution[sol] == "P":
+                if edgework["Parallel Port"] == "True":
+                    cut(sol + 1)
+            elif solution[sol] == "B":
+                if int(edgework["Batteries"]) > 1:
+                    cut(sol + 1)
 
 
 def solvefront():
@@ -264,6 +447,36 @@ def solvefront():
         rclick(mx, my)
 
 
+def solveback():
+    locations = {}
+    for loc in modules["RearFace"]:
+        if modules["RearFace"][loc] != "EmptyComponent" and modules["RearFace"][loc] != "TimerComponent":
+            locations[loc] = modules["RearFace"][loc]
+    for loc in locations:
+        time.sleep(0.4)
+        if loc == "0":
+            lclick(406, 249)
+        elif loc == "1":
+            lclick(632, 247)
+        elif loc == "2":
+            lclick(868, 248)
+        elif loc == "3":
+            lclick(393, 469)
+        elif loc == "4":
+            lclick(630, 460)
+        elif loc == "5":
+            lclick(867, 470)
+        solvemodule(modules["RearFace"][loc])
+        mx, my = pag.position()
+        rclick(mx, my)
+
+
+def flipbomb():
+    pag.moveTo(150, 500)
+    time.sleep(0.3)
+    pag.dragTo(585, 500, 0.2, button='right')
+
+
 def newbomb(run):
     if run:
         subprocess.run(["/usr/bin/open", "/Applications/Keep Talking and Nobody Explodes.app"])
@@ -279,12 +492,17 @@ def newbomb(run):
 
 
 log = setuplog(1)
-setupfirstbomb(1)
+setupsnipsnap(1)
 bombinfo = log.readlines()[1:]
 modules = setupmodules()
 edgework = setupedgework()
 os.chdir("../../Users/CharlieBeutter/Desktop/KTANE-TAS-ASSETS")
+
 solvefront()
+flipbomb()
+solveback()
+
+exit()
 time.sleep(12)
 lclick(750, 590)
 lclick(750, 590)
